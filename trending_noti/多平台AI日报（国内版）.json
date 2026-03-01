@@ -1,0 +1,938 @@
+{
+  "name": "多平台AI日报（国内版）",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "hours",
+              "hoursInterval": 24
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        -400,
+        608
+      ],
+      "id": "85faeb1a-1a9f-461e-9a82-20c34d564030",
+      "name": "每天上午8点执行"
+    },
+    {
+      "parameters": {
+        "url": "http://host.docker.internal:1200/youtube/user/@linbintalk",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.rssFeedRead",
+      "typeVersion": 1.2,
+      "position": [
+        0,
+        208
+      ],
+      "id": "6f85440e-6f3d-4db5-8056-2a0a565aceab",
+      "name": "YouTube RSS"
+    },
+    {
+      "parameters": {
+        "url": "http://host.docker.internal:1200/aibase/news",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.rssFeedRead",
+      "typeVersion": 1.2,
+      "position": [
+        0,
+        400
+      ],
+      "id": "632e2ba7-da28-4e9e-9894-50aa1476ff85",
+      "name": "AIbase RSS",
+      "retryOnFail": true,
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "url": "https://www.qbitai.com/feed",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.rssFeedRead",
+      "typeVersion": 1.2,
+      "position": [
+        0,
+        608
+      ],
+      "id": "79d42a8f-4f99-4ca7-bb45-fcf9e569b889",
+      "name": "量子位 RSS",
+      "retryOnFail": true,
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "url": "https://news.ycombinator.com/rss",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.rssFeedRead",
+      "typeVersion": 1.2,
+      "position": [
+        0,
+        800
+      ],
+      "id": "75075345-9b75-4dec-9c5b-8d3e36ce0eb1",
+      "name": "Hacker News RSS",
+      "retryOnFail": true,
+      "waitBetweenTries": 5000,
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "xh-users",
+              "name": "users",
+              "value": "[\"653a1840000000000d00454d\"]",
+              "type": "array"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        0,
+        0
+      ],
+      "id": "7f3b700c-ed60-4b6f-820e-362da6945ba7",
+      "name": "小红书账户配置"
+    },
+    {
+      "parameters": {
+        "fieldToSplitOut": "users",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.splitOut",
+      "typeVersion": 1,
+      "position": [
+        240,
+        0
+      ],
+      "id": "3916110f-6e8b-48d6-af92-98c5626eabaf",
+      "name": "拆分小红书账户"
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 3,
+      "position": [
+        480,
+        0
+      ],
+      "id": "357f8d7d-5e06-462b-938d-f06688940a58",
+      "name": "循环小红书账户"
+    },
+    {
+      "parameters": {
+        "url": "=http://host.docker.internal:1200/xiaohongshu/user/{{ $json.users }}/notes",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.rssFeedRead",
+      "typeVersion": 1.2,
+      "position": [
+        720,
+        0
+      ],
+      "id": "21f27cda-fe6d-4d81-996a-738da1ca90ae",
+      "name": "小红书 RSS"
+    },
+    {
+      "parameters": {
+        "maxItems": 5
+      },
+      "type": "n8n-nodes-base.limit",
+      "typeVersion": 1,
+      "position": [
+        960,
+        0
+      ],
+      "id": "af981ea1-6ba7-4eb1-b3bb-4599157c9571",
+      "name": "限制小红书数量"
+    },
+    {
+      "parameters": {
+        "jsCode": "const inputData = $input.all();\nconst platformName = '小红书';\nconst platformClass = 'xiaohongshu';\n\nconst result = inputData.map(item => {\n  let utc8Time;\n  try {\n    const gmtDate = new Date(item.json.pubDate);\n    const utc8Date = new Date(gmtDate.getTime() + 8 * 60 * 60 * 1000);\n    utc8Time = utc8Date.toISOString().replace('T', ' ').replace('.000Z', '');\n  } catch (error) {\n    utc8Time = item.json.pubDate;\n  }\n  \n  return {\n    json: {\n      platform: platformName,\n      platformClass: platformClass,\n      creator: item.json.creator || '',\n      title: item.json.title || '',\n      link: item.json.link || '',\n      content: (item.json.contentSnippet || '').substring(0, 500),\n      pubDate: utc8Time\n    }\n  };\n});\n\nreturn result;"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1200,
+        0
+      ],
+      "id": "883df410-3547-4bea-8081-cca98424d7c8",
+      "name": "格式化小红书"
+    },
+    {
+      "parameters": {
+        "maxItems": 5
+      },
+      "type": "n8n-nodes-base.limit",
+      "typeVersion": 1,
+      "position": [
+        240,
+        208
+      ],
+      "id": "94ebc702-5345-4c45-9856-1cc4d49abdb3",
+      "name": "限制YouTube数量"
+    },
+    {
+      "parameters": {
+        "jsCode": "const inputData = $input.all();\nconst platformName = 'YouTube';\nconst platformClass = 'youtube';\n\nconst result = inputData.map(item => {\n  let utc8Time;\n  try {\n    const gmtDate = new Date(item.json.pubDate);\n    const utc8Date = new Date(gmtDate.getTime() + 8 * 60 * 60 * 1000);\n    utc8Time = utc8Date.toISOString().replace('T', ' ').replace('.000Z', '');\n  } catch (error) {\n    utc8Time = item.json.pubDate;\n  }\n  \n  return {\n    json: {\n      platform: platformName,\n      platformClass: platformClass,\n      creator: item.json.creator || item.json.author || '',\n      title: item.json.title || '',\n      link: item.json.link || '',\n      content: (item.json.contentSnippet || item.json.description || '').substring(0, 500),\n      pubDate: utc8Time\n    }\n  };\n});\n\nreturn result;"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        480,
+        208
+      ],
+      "id": "2fe1c153-52cc-4098-9d8f-7af4dffde6fc",
+      "name": "格式化YouTube"
+    },
+    {
+      "parameters": {
+        "maxItems": 5
+      },
+      "type": "n8n-nodes-base.limit",
+      "typeVersion": 1,
+      "position": [
+        240,
+        400
+      ],
+      "id": "f08896de-4a7a-4d79-9d05-27cceba8c6d1",
+      "name": "限制AIbase数量"
+    },
+    {
+      "parameters": {
+        "jsCode": "const inputData = $input.all();\nconst platformName = 'AIbase';\nconst platformClass = 'aibase';\n\nconst result = inputData.map(item => {\n  let utc8Time;\n  try {\n    const gmtDate = new Date(item.json.pubDate);\n    const utc8Date = new Date(gmtDate.getTime() + 8 * 60 * 60 * 1000);\n    utc8Time = utc8Date.toISOString().replace('T', ' ').replace('.000Z', '');\n  } catch (error) {\n    utc8Time = item.json.pubDate;\n  }\n  \n  return {\n    json: {\n      platform: platformName,\n      platformClass: platformClass,\n      creator: item.json.creator || '',\n      title: item.json.title || '',\n      link: item.json.link || '',\n      content: (item.json.contentSnippet || item.json.description || '').substring(0, 500),\n      pubDate: utc8Time\n    }\n  };\n});\n\nreturn result;"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        480,
+        400
+      ],
+      "id": "c657252c-c9b1-4fed-beb8-36b62d44cc5e",
+      "name": "格式化AIbase"
+    },
+    {
+      "parameters": {
+        "maxItems": 5
+      },
+      "type": "n8n-nodes-base.limit",
+      "typeVersion": 1,
+      "position": [
+        240,
+        608
+      ],
+      "id": "40599592-475e-4d2b-b08f-508650152f23",
+      "name": "限制量子位数量"
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 3,
+      "position": [
+        480,
+        608
+      ],
+      "id": "e4acebac-c9b1-4674-a481-c933f37b6e40",
+      "name": "循环量子位文章"
+    },
+    {
+      "parameters": {
+        "url": "={{ $json.link }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "User-Agent",
+              "value": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36"
+            },
+            {
+              "name": "Accept",
+              "value": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8"
+            },
+            {
+              "name": "Accept-Language",
+              "value": "zh-CN,zh;q=0.9,en;q=0.8"
+            }
+          ]
+        },
+        "options": {
+          "timeout": 30000
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        720,
+        608
+      ],
+      "id": "c1348d01-4408-4ede-9afb-d2260cf92df0",
+      "name": "抓取量子位页面",
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "jsCode": "const items = $input.all();\nconst results = [];\n\nfor (const item of items) {\n  const prevItem = item.json;\n  const originalData = $('循环量子位文章').item.json;\n  \n  if (prevItem.error) {\n    console.log('HTTP请求失败，使用RSS描述:', prevItem.error);\n    results.push({ json: { ...originalData, fullContent: originalData.contentSnippet || 'RSS描述(抓取失败)' }});\n    continue;\n  }\n  \n  let html = '';\n  \n  if (typeof prevItem === 'string') {\n    html = prevItem;\n  } else if (prevItem.data) {\n    html = prevItem.data;\n  } else if (prevItem.body) {\n    html = prevItem.body;\n  } else if (item.binary && item.binary.data) {\n    html = Buffer.from(item.binary.data, 'base64').toString('utf-8');\n  }\n  \n  if (!html || html.length < 100) {\n    results.push({ json: { ...originalData, fullContent: originalData.contentSnippet || 'RSS描述' }});\n    continue;\n  }\n  \n  let title = originalData.title || '';\n  const titleMatch = html.match(/<h1[^>]*>([^<]+)<\\/h1>/i);\n  if (titleMatch) {\n    title = titleMatch[1].replace(/&#8211;/g, '-').replace(/&amp;/g, '&').trim();\n  }\n  \n  let creator = originalData.creator || '';\n  const creatorMatch = html.match(/<span[^>]*class=\"author\"[^>]*>[\\\\s\\\\S]*?<a[^>]*rel=\"author\"[^>]*>([^<]+)<\\/a>/i);\n  if (creatorMatch) {\n    creator = creatorMatch[1].trim();\n  }\n  \n  let text = html;\n  text = text.replace(/<head[\\\\s\\\\S]*?<\\/head>/gi, '');\n  text = text.replace(/<script[\\\\s\\\\S]*?<\\/script>/gi, '');\n  text = text.replace(/<style[\\\\s\\\\S]*?<\\/style>/gi, '');\n  text = text.replace(/<!--[\\\\s\\\\S]*?-->/g, '');\n  \n  const articleStart = text.indexOf('<div class=\"article\">');\n  if (articleStart > -1) {\n    text = text.substring(articleStart);\n    const rightStart = text.indexOf('<div class=\"content_right\">');\n    if (rightStart > -1) {\n      text = text.substring(0, rightStart);\n    }\n  }\n  \n  text = text.replace(/<[^>]+>/g, ' ');\n  text = text.replace(/&nbsp;/g, ' ').replace(/&amp;/g, '&').replace(/&#8211;/g, '-').replace(/&#8220;/g, '\\\\\"').replace(/&#8221;/g, '\\\\\"').replace(/&#\\\\d+;/g, '');\n  text = text.replace(/\\\\s+/g, ' ').trim();\n  \n  let content = text.substring(0, 3000);\n  if (!content || content.length < 50) {\n    content = (originalData.contentSnippet || 'RSS描述').substring(0, 500);\n  }\n  \n  results.push({ json: { ...originalData, title: title, creator: creator, fullContent: content }});\n}\n\nreturn results;"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        960,
+        608
+      ],
+      "id": "c8290435-e32c-40d1-87ac-9f8681f9706b",
+      "name": "提取量子位内容"
+    },
+    {
+      "parameters": {
+        "jsCode": "const inputData = $input.all();\nconst platformName = '量子位';\nconst platformClass = 'qbitai';\n\nconst result = inputData.map(item => {\n  let utc8Time;\n  try {\n    const gmtDate = new Date(item.json.pubDate);\n    const utc8Date = new Date(gmtDate.getTime() + 8 * 60 * 60 * 1000);\n    utc8Time = utc8Date.toISOString().replace('T', ' ').replace('.000Z', '');\n  } catch (error) {\n    utc8Time = item.json.pubDate;\n  }\n  \n  return {\n    json: {\n      platform: platformName,\n      platformClass: platformClass,\n      creator: item.json.creator || '',\n      title: item.json.title || '',\n      link: item.json.link || '',\n      content: item.json.fullContent || item.json.contentSnippet || '',\n      pubDate: utc8Time\n    }\n  };\n});\n\nreturn result;"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1360,
+        608
+      ],
+      "id": "ae4cea2f-d528-430e-8ddf-eb60836e3b1c",
+      "name": "格式化量子位"
+    },
+    {
+      "parameters": {
+        "maxItems": 5
+      },
+      "type": "n8n-nodes-base.limit",
+      "typeVersion": 1,
+      "position": [
+        240,
+        800
+      ],
+      "id": "e1cafd03-5ac4-4329-8868-58ca543db478",
+      "name": "限制HN数量",
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 3,
+      "position": [
+        480,
+        800
+      ],
+      "id": "0914f47b-8bae-4c3b-878f-dcb8099ca2e8",
+      "name": "循环HN文章",
+      "retryOnFail": false
+    },
+    {
+      "parameters": {
+        "url": "={{ $json.link }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "User-Agent",
+              "value": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36"
+            },
+            {
+              "name": "Accept",
+              "value": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8"
+            }
+          ]
+        },
+        "options": {
+          "timeout": 30000
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        720,
+        800
+      ],
+      "id": "122d7f9f-4069-4594-a0be-e8f82ed32290",
+      "name": "抓取HN页面",
+      "retryOnFail": true,
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "jsCode": "const items = $input.all();\nconst results = [];\n\nfor (const item of items) {\n  const prevItem = item.json;\n  const originalData = $('循环HN文章').item.json;\n  \n  if (prevItem.error) {\n    console.log('HTTP请求失败，使用RSS描述:', prevItem.error);\n    results.push({ json: { ...originalData, fullContent: originalData.contentSnippet || 'RSS描述(抓取失败)' }});\n    continue;\n  }\n  \n  let html = '';\n  \n  if (typeof prevItem === 'string') {\n    html = prevItem;\n  } else if (prevItem.data) {\n    html = prevItem.data;\n  } else if (prevItem.body) {\n    html = prevItem.body;\n  } else if (item.binary && item.binary.data) {\n    html = Buffer.from(item.binary.data, 'base64').toString('utf-8');\n  }\n  \n  if (!html || html.length < 100) {\n    results.push({ json: { ...originalData, fullContent: originalData.contentSnippet || 'RSS描述' }});\n    continue;\n  }\n  \n  let title = originalData.title || '';\n  const titleMatch = html.match(/<title>([^<]+)<\\/title>/i);\n  if (titleMatch && !titleMatch[1].includes('Hacker News')) {\n    title = titleMatch[1].replace(/&amp;/g, '&').replace(/&#\\\\d+;/g, '').trim();\n  }\n  \n  let text = html;\n  text = text.replace(/<head[\\\\s\\\\S]*?<\\/head>/gi, '');\n  text = text.replace(/<script[\\\\s\\\\S]*?<\\/script>/gi, '');\n  text = text.replace(/<style[\\\\s\\\\S]*?<\\/style>/gi, '');\n  text = text.replace(/<!--[\\\\s\\\\S]*?-->/g, '');\n  \n  const articleMatch = text.match(/<article[^>]*>([\\\\s\\\\S]*?)<\\/article>/i);\n  if (articleMatch) {\n    text = articleMatch[1];\n  } else {\n    const mainMatch = text.match(/<main[^>]*>([\\\\s\\\\S]*?)<\\/main>/i);\n    if (mainMatch) {\n      text = mainMatch[1];\n    }\n  }\n  \n  text = text.replace(/<[^>]+>/g, ' ');\n  text = text.replace(/&nbsp;/g, ' ').replace(/&amp;/g, '&').replace(/&#\\\\d+;/g, ' ');\n  text = text.replace(/\\\\s+/g, ' ').trim();\n  \n  let content = text.substring(0, 3000);\n  if (!content || content.length < 50) {\n    content = (originalData.contentSnippet || 'RSS描述').substring(0, 500);\n  }\n  \n  results.push({ json: { ...originalData, title: title, fullContent: content }});\n}\n\nreturn results;"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        960,
+        800
+      ],
+      "id": "3c4365b8-b1fe-4ead-bd45-694295de7468",
+      "name": "提取HN内容"
+    },
+    {
+      "parameters": {
+        "jsCode": "const inputData = $input.all();\nconst platformName = 'Hacker News';\nconst platformClass = 'hackernews';\n\nconst result = inputData.map(item => {\n  let utc8Time;\n  try {\n    const gmtDate = new Date(item.json.pubDate);\n    const utc8Date = new Date(gmtDate.getTime() + 8 * 60 * 60 * 1000);\n    utc8Time = utc8Date.toISOString().replace('T', ' ').replace('.000Z', '');\n  } catch (error) {\n    utc8Time = item.json.pubDate;\n  }\n  \n  return {\n    json: {\n      platform: platformName,\n      platformClass: platformClass,\n      creator: item.json.creator || '',\n      title: item.json.title || '',\n      link: item.json.link || '',\n      content: item.json.fullContent || item.json.contentSnippet || '',\n      pubDate: utc8Time\n    }\n  };\n});\n\nreturn result;"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1360,
+        800
+      ],
+      "id": "a1c22d96-e079-49c3-9695-4d8cc26d15f7",
+      "name": "格式化HN"
+    },
+    {
+      "parameters": {
+        "numberInputs": 3
+      },
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3.2,
+      "position": [
+        1648,
+        400
+      ],
+      "id": "92e76f80-cb64-475b-b9d2-7ace01d4f01f",
+      "name": "合并所有平台",
+      "notesInFlow": true
+    },
+    {
+      "parameters": {
+        "jsCode": "// 按平台分组\nconst items = $input.all();\nconst grouped = {};\n\nitems.forEach(item => {\n  const platform = item.json.platform;\n  if (!grouped[platform]) {\n    grouped[platform] = [];\n  }\n  grouped[platform].push(item.json);\n});\n\n// 转换为数组输出\nconst result = Object.keys(grouped).map(platform => ({\n  json: {\n    platform: platform,\n    items: grouped[platform]\n  }\n}));\n\nreturn result;"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1888,
+        400
+      ],
+      "id": "f96c50b0-be60-4408-a202-307089b9a63f",
+      "name": "按平台分组"
+    },
+    {
+      "parameters": {
+        "jsCode": "// 解析DeepSeek返回的Markdown\nconst response = $input.first().json;\nconst markdown = response.choices[0].message.content;\n\n// 将Markdown转换为HTML\nfunction markdownToHtml(md) {\n  return md\n    .replace(/^# (.+)$/gm, '<h1>$1</h1>')\n    .replace(/^## (.+)$/gm, '<h2 class=\"platform-title\">$1</h2>')\n    .replace(/^### (.+)$/gm, '<h3>$1</h3>')\n    .replace(/\\*\\*(.+?)\\*\\*/g, '<strong>$1</strong>')\n    .replace(/\\[(.+?)\\]\\((.+?)\\)/g, '<a href=\"$2\">$1</a>')\n    .replace(/^- (.+)$/gm, '<li>$1</li>')\n    .replace(/^---$/gm, '<hr>')\n    .replace(/\\n\\n/g, '</p><p>')\n    .replace(/^(.+)$/gm, '<p>$1</p>');\n}\n\nconst htmlContent = markdownToHtml(markdown);\n\nconst fullHtml = `\n<!DOCTYPE html>\n<html>\n<head>\n    <meta charset=\"UTF-8\">\n    <meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\">\n    <style>\n        body {\n            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;\n            max-width: 800px;\n            margin: 0 auto;\n            padding: 20px;\n            background: #f5f5f5;\n            line-height: 1.6;\n        }\n        .container {\n            background: white;\n            padding: 30px;\n            border-radius: 8px;\n            box-shadow: 0 2px 10px rgba(0,0,0,0.1);\n        }\n        h1 {\n            color: #333;\n            border-bottom: 3px solid #0066cc;\n            padding-bottom: 10px;\n            margin-bottom: 30px;\n        }\n        .platform-title {\n            color: #0066cc;\n            margin-top: 30px;\n            margin-bottom: 15px;\n            font-size: 1.4em;\n            border-left: 4px solid #0066cc;\n            padding-left: 10px;\n        }\n        h3 {\n            color: #444;\n            margin-top: 20px;\n            margin-bottom: 10px;\n        }\n        a {\n            color: #0066cc;\n            text-decoration: none;\n        }\n        a:hover {\n            text-decoration: underline;\n        }\n        li {\n            margin: 8px 0;\n            color: #555;\n        }\n        hr {\n            border: none;\n            border-top: 1px solid #ddd;\n            margin: 30px 0;\n        }\n        .footer {\n            margin-top: 40px;\n            padding-top: 20px;\n            border-top: 1px solid #eee;\n            color: #999;\n            font-size: 0.9em;\n            text-align: center;\n        }\n        p {\n            margin: 10px 0;\n            color: #666;\n        }\n    </style>\n</head>\n<body>\n    <div class=\"container\">\n        ${htmlContent}\n        <div class=\"footer\">\n            <p>📅 生成时间: ${new Date().toLocaleString('zh-CN', { timeZone: 'Asia/Shanghai' })}</p>\n            <p>🤖 由 DeepSeek AI 整理</p>\n        </div>\n    </div>\n</body>\n</html>\n`;\n\nreturn [{\n  json: {\n    html: fullHtml,\n    markdown: markdown\n  }\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2976,
+        400
+      ],
+      "id": "65c47131-7037-4527-a37a-f43b1274be65",
+      "name": "生成邮件HTML"
+    },
+    {
+      "parameters": {
+        "fromEmail": "123@126.com",
+        "toEmail": "123@qq.com",
+        "subject": "=AI日报 - {{ $now.format('DD') }}",
+        "html": "={{ $json.html }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 2.1,
+      "position": [
+        3216,
+        400
+      ],
+      "id": "90aa82aa-1c1e-443e-8914-e5b1d8ddf9d5",
+      "name": "发送邮件",
+      "webhookId": "123",
+      "credentials": {
+        "smtp": {
+          "id": "123",
+          "name": "SMTP account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const groups = $input.all();\n\nlet newsData = '';\ngroups.forEach(group => {\n  newsData += `平台: ${group.json.platform}\\n`;\n  group.json.items.forEach((item, index) => {\n    newsData += `\\n新闻 ${index + 1}:\\n`;\n    newsData += `标题: ${item.title}\\n`;\n    newsData += `链接: ${item.link}\\n`;\n    newsData += `内容: ${item.fullContent ? item.fullContent.substring(0, 500) : item.content}\\n`;\n  });\n  newsData += '\\n---\\n\\n';\n});\n\nreturn [{ json: { newsData: newsData } }];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2112,
+        400
+      ],
+      "id": "98f50117-4006-4ca1-9e3e-a3f18ae0f1b4",
+      "name": "准备新闻数据"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=你是一个专业的日报编辑。请将以下多平台新闻整理成简洁的日报格式。\n\n处理要求：\n1. 如果是英文新闻，翻译成中文\n2. 提炼核心要点，每条控制在150字以内\n3. 保留原文链接\n\n输出格式（使用Markdown）：\n# 日报\n## 平台名\n### 新闻标题\n- 链接: [原文](url)\n- 简介: 核心内容摘要...\n\n---\n\n新闻数据：\n{{ $json.newsData }}",
+        "options": {
+          "systemMessage": "你是一个专业的新闻编辑，擅长将多源信息整理成简洁易读的日报。请严格按照Markdown格式输出，不要添加代码块标记。"
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3.1,
+      "position": [
+        2384,
+        400
+      ],
+      "id": "8f3187c2-236e-4f05-b080-c45919f119e5",
+      "name": "AI Agent"
+    },
+    {
+      "parameters": {
+        "jsCode": "const aiOutput = $input.first().json.output;\n\nconst fakeResponse = {\n  choices: [\n    {\n      message: {\n        content: aiOutput\n      }\n    }\n  ]\n};\n\nreturn [{ json: fakeResponse }];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2672,
+        400
+      ],
+      "id": "6b74fd06-a54d-463e-ac89-5eddd5340b74",
+      "name": "转换AI输出格式"
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatDeepSeek",
+      "typeVersion": 1,
+      "position": [
+        2368,
+        608
+      ],
+      "id": "1c08f57b-249d-40bd-8051-a5c4aeceb9df",
+      "name": "DeepSeek Chat Model",
+      "retryOnFail": true,
+      "credentials": {
+        "deepSeekApi": {
+          "id": "123",
+          "name": "DeepSeek account"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "每天上午8点执行": {
+      "main": [
+        [
+          {
+            "node": "AIbase RSS",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "量子位 RSS",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Hacker News RSS",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "小红书账户配置",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "小红书账户配置": {
+      "main": [
+        [
+          {
+            "node": "拆分小红书账户",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "拆分小红书账户": {
+      "main": [
+        [
+          {
+            "node": "循环小红书账户",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "循环小红书账户": {
+      "main": [
+        [
+          {
+            "node": "合并所有平台",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "小红书 RSS",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "小红书 RSS": {
+      "main": [
+        [
+          {
+            "node": "限制小红书数量",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "限制小红书数量": {
+      "main": [
+        [
+          {
+            "node": "格式化小红书",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "格式化小红书": {
+      "main": [
+        [
+          {
+            "node": "循环小红书账户",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "YouTube RSS": {
+      "main": [
+        [
+          {
+            "node": "限制YouTube数量",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "限制YouTube数量": {
+      "main": [
+        [
+          {
+            "node": "格式化YouTube",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "格式化YouTube": {
+      "main": [
+        [
+          {
+            "node": "合并所有平台",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AIbase RSS": {
+      "main": [
+        [
+          {
+            "node": "限制AIbase数量",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "限制AIbase数量": {
+      "main": [
+        [
+          {
+            "node": "格式化AIbase",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "格式化AIbase": {
+      "main": [
+        [
+          {
+            "node": "合并所有平台",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "量子位 RSS": {
+      "main": [
+        [
+          {
+            "node": "限制量子位数量",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "限制量子位数量": {
+      "main": [
+        [
+          {
+            "node": "循环量子位文章",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "循环量子位文章": {
+      "main": [
+        [
+          {
+            "node": "合并所有平台",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "抓取量子位页面",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "抓取量子位页面": {
+      "main": [
+        [
+          {
+            "node": "提取量子位内容",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "提取量子位内容": {
+      "main": [
+        [
+          {
+            "node": "格式化量子位",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "格式化量子位": {
+      "main": [
+        [
+          {
+            "node": "循环量子位文章",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Hacker News RSS": {
+      "main": [
+        [
+          {
+            "node": "限制HN数量",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "限制HN数量": {
+      "main": [
+        [
+          {
+            "node": "循环HN文章",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "循环HN文章": {
+      "main": [
+        [
+          {
+            "node": "合并所有平台",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "抓取HN页面",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "抓取HN页面": {
+      "main": [
+        [
+          {
+            "node": "提取HN内容",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "提取HN内容": {
+      "main": [
+        [
+          {
+            "node": "格式化HN",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "格式化HN": {
+      "main": [
+        [
+          {
+            "node": "循环HN文章",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "合并所有平台": {
+      "main": [
+        [
+          {
+            "node": "按平台分组",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "按平台分组": {
+      "main": [
+        [
+          {
+            "node": "准备新闻数据",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "准备新闻数据": {
+      "main": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Agent": {
+      "main": [
+        [
+          {
+            "node": "转换AI输出格式",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "转换AI输出格式": {
+      "main": [
+        [
+          {
+            "node": "生成邮件HTML",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "生成邮件HTML": {
+      "main": [
+        [
+          {
+            "node": "发送邮件",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "DeepSeek Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "availableInMCP": false
+  },
+  "versionId": "c9e9ce7e-7af4-4239-af48-91956fc0a379",
+  "meta": {
+    "instanceId": "123"
+  },
+  "id": "LmfyY8cqKur6C6Nr",
+  "tags": [
+    {
+      "name": "stable",
+      "id": "mczDR4ScsMZQosvt",
+      "updatedAt": "2026-03-01T06:26:32.930Z",
+      "createdAt": "2026-03-01T06:26:32.930Z"
+    }
+  ]
+}
